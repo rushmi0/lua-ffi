@@ -1,0 +1,2 @@
+headers = liblua_ffi.h
+staticLibraries = liblua_ffi.a
