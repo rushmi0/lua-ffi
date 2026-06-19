@@ -7,5 +7,34 @@ edition = "2024"
 name = "lua_ffi"
 crate-type = ["cdylib", "staticlib"]
 
+[features]
+default = ["lua54", "send"]
+
+# Lua version — mutually exclusive; pick exactly one per build.
+lua55 = ["mlua/lua55", "mlua/vendored"]
+lua54 = ["mlua/lua54", "mlua/vendored"]
+lua53 = ["mlua/lua53", "mlua/vendored"]
+lua52 = ["mlua/lua52", "mlua/vendored"]
+lua51 = ["mlua/lua51", "mlua/vendored"]
+luajit = ["mlua/luajit", "mlua/vendored"]
+luajit52 = ["mlua/luajit52", "mlua/vendored"]
+luau = ["mlua/luau", "mlua/vendored"]
+luau-jit = ["mlua/luau-jit", "mlua/vendored"]
+luau-vector4 = ["luau", "mlua/luau-vector4"]
+
+# Capability features — mirrors mlua's feature set.
+async = ["mlua/async", "dep:tokio"]
+send = ["mlua/send"]
+serialize = ["mlua/serialize"]
+macros = ["mlua/macros"]
+module = ["mlua/module"]
+anyhow = ["mlua/anyhow", "dep:anyhow"]
+error-send = ["mlua/error-send"]
+userdata-wrappers = ["mlua/userdata-wrappers"]
+vendored = ["mlua/vendored"]
+
 [dependencies]
 uniffi = { version = "=0.29.5", features = ["tokio", "cli"] }
+mlua = { version = "0.11.6", default-features = false }
+anyhow = { version = "1.0", optional = true }
+tokio = { version = "1", features = ["rt-multi-thread"], optional = true }

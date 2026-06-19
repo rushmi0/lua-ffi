@@ -12,8 +12,8 @@ common_dir  := src_dir / "commonMain"
 native_dir  := src_dir / "nativeMain"
 jvm_dir     := src_dir / "jvmMain"
 
-# Full pipeline (add ios before clean when building on macOS)
-default: build-host build-android build-linux build-windows clean generate-bindings copy-android copy-linux-glibc copy-linux-musl copy-freebsd copy-windows assemble
+# Full pipeline (add ios before clean-kmp when building on macOS)
+default: build-host build-android build-linux build-windows clean-kmp generate-bindings copy-android copy-linux-glibc copy-linux-musl copy-freebsd copy-windows build-kmp
 
 # Build and copy Android libs
 android: build-android copy-android
@@ -36,7 +36,7 @@ build-android:
     #!/usr/bin/env bash
     set -euxo pipefail
     rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
-    cargo ndk -t arm64-v8a -t armeabi-v7a -t x86 -t x86_64 build --lib --release
+    cargo ndk -t arm64-v8a -t armeabi-v7a -t x86 -t x86_64 -P 24 build --lib --release
 
 # macOS only
 build-ios:
@@ -101,9 +101,14 @@ build-macos:
         cargo zigbuild --lib --release --target "$TARGET"
     done
 
-clean:
+clean-kmp:
     rm -rf "{{android_dir}}" "{{common_dir}}" "{{native_dir}}" "{{jvm_dir}}" \
            "{{src_dir}}/nativeInterop/cinterop/headers"
+
+clean: clean-kmp
+    rm -rf "{{target_dir}}" \
+           "{{script_dir}}/libkmp/lau-kmp/build" \
+           "{{script_dir}}/libkmp/build"
 
 copy-android:
     mkdir -p "{{jni_dir}}/arm64-v8a" "{{jni_dir}}/armeabi-v7a" "{{jni_dir}}/x86" "{{jni_dir}}/x86_64"
@@ -168,5 +173,5 @@ generate-bindings:
     mkdir -p "{{src_dir}}"
     cp -R "{{target_dir}}/uniffi/kotlin-multiplatform/." "{{src_dir}}"
 
-assemble:
+build-kmp:
     cd "{{script_dir}}/libkmp" && ./gradlew :lau-kmp:assemble
