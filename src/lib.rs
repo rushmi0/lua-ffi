@@ -1,23 +1,11 @@
-#[uniffi::export]
-fn add(lhs: i32, rhs: i32) -> i32 {
-    lhs + rhs
-}
+pub mod config;
+pub mod error;
+pub mod value;
+pub mod vm;
 
-#[derive(uniffi::Object)]
-struct Greeter {
-    greeting: String
-}
-
-#[uniffi::export]
-impl Greeter {
-    #[uniffi::constructor]
-    fn new(greeting: String) -> Self {
-        Self { greeting }
-    }
-
-    fn greet(&self, name: String) -> String {
-        format!("{}, {name}!", self.greeting)
-    }
-}
+pub use config::{LuaConfig, LuaStdLib};
+pub use error::LuaError;
+pub use value::LuaValue;
+pub use vm::LuaVm;
 
 uniffi::setup_scaffolding!("lua_ffi");

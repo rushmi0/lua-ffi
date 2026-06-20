@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.android.kotlin.multiplatform.library)
     alias(libs.plugins.vanniktech.mavenPublish)
+    id("signing")
 }
 
 group = "org.siamdev"
@@ -16,7 +17,7 @@ kotlin {
 
     jvm {
         compilerOptions {
-            jvmTarget = JvmTarget.JVM_17
+            jvmTarget = JvmTarget.JVM_11
         }
     }
     androidLibrary {
@@ -75,13 +76,26 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
+
+        val androidHostTest by getting {
+            dependencies {
+                implementation(libs.jna)
+            }
+        }
+    }
+}
+
+tasks.withType<Test>().configureEach {
+    if (name == "testAndroidHostTest") {
+        val libPath = projectDir.resolve("src/jvmMain/resources/linux-x86-64/liblua_ffi.so").absolutePath
+        systemProperty("uniffi.component.lua_ffi.libraryOverride", libPath)
     }
 }
 
 mavenPublishing {
     publishToMavenCentral()
 
-    signAllPublications()
+    //signAllPublications()
 
     coordinates(group.toString(), "lau-kmp", version.toString())
 
@@ -110,4 +124,8 @@ mavenPublishing {
             developerConnection = "ZZZ"
         }
     }
+}
+
+signing {
+    isRequired = false
 }

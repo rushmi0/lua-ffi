@@ -99,36 +99,204 @@ public object NoPointer
 
 
 
-public interface GreeterInterface {
+
+
+
+
+public interface LuaVmInterface {
     
-    public fun `greet`(`name`: kotlin.String): kotlin.String
+    /**
+     * Execute a script and return the first value.
+     */
+    @Throws(LuaException::class)
+    public fun `eval`(`script`: kotlin.String): LuaValue
+    
+    /**
+     * Execute a script, discarding any return values.
+     */
+    @Throws(LuaException::class)
+    public fun `exec`(`script`: kotlin.String)
+    
+    /**
+     * Get a global variable.
+     */
+    @Throws(LuaException::class)
+    public fun `getGlobal`(`name`: kotlin.String): LuaValue
+    
+    /**
+     * Set a global variable.
+     */
+    @Throws(LuaException::class)
+    public fun `setGlobal`(`name`: kotlin.String, `value`: LuaValue)
+    
+    /**
+     * Return the Lua version string, e.g. `"Lua 5.4"`.
+     */
+    public fun `version`(): kotlin.String
     
     public companion object
 }
 
 
-public expect open class Greeter: Disposable, GreeterInterface {
+public expect open class LuaVm: Disposable, LuaVmInterface {
     /**
      * This constructor can be used to instantiate a fake object. Only used for tests. Any
      * attempt to actually use an object constructed this way will fail as there is no
      * connected Rust object.
      */
+    /**
+     * Create a VM with all standard libraries loaded.
+     */
     public constructor(noPointer: NoPointer)
 
     
-    public constructor(`greeting`: kotlin.String)
+    /**
+     * Create a VM with all standard libraries loaded.
+     */
+    public constructor()
 
     override fun destroy()
     override fun close()
 
     
-    public override fun `greet`(`name`: kotlin.String): kotlin.String
+    /**
+     * Execute a script and return the first value.
+     */
+    @Throws(LuaException::class)
+    public override fun `eval`(`script`: kotlin.String): LuaValue
+    
+    /**
+     * Execute a script, discarding any return values.
+     */
+    @Throws(LuaException::class)
+    public override fun `exec`(`script`: kotlin.String)
+    
+    /**
+     * Get a global variable.
+     */
+    @Throws(LuaException::class)
+    public override fun `getGlobal`(`name`: kotlin.String): LuaValue
+    
+    /**
+     * Set a global variable.
+     */
+    @Throws(LuaException::class)
+    public override fun `setGlobal`(`name`: kotlin.String, `value`: LuaValue)
+    
+    /**
+     * Return the Lua version string, e.g. `"Lua 5.4"`.
+     */
+    public override fun `version`(): kotlin.String
     
 
+    public companion object {
+        
+        /**
+         * Create a VM with explicit stdlib and options.
+         */
+        @Throws(LuaException::class)
+        public fun `withConfig`(`config`: LuaConfig): LuaVm
+        
+    }
     
+}
+
+
+
+
+
+public data class LuaConfig (
+    var `stdlib`: LuaStdLib
+) {
     public companion object
 }
 
 
-public expect fun `add`(`lhs`: kotlin.Int, `rhs`: kotlin.Int): kotlin.Int
+
+
+
+public sealed class LuaException: kotlin.Exception() {
+    
+    public class Syntax(
+        public val `msg`: kotlin.String,
+    ) : LuaException() {
+        override val message: String
+            get() = "msg=${ `msg` }"
+    }
+    
+    public class Runtime(
+        public val `msg`: kotlin.String,
+    ) : LuaException() {
+        override val message: String
+            get() = "msg=${ `msg` }"
+    }
+    
+    public class Other(
+        public val `msg`: kotlin.String,
+    ) : LuaException() {
+        override val message: String
+            get() = "msg=${ `msg` }"
+    }
+    
+}
+
+
+
+
+
+
+public enum class LuaStdLib {
+    
+    /**
+     * Full standard library: io, os, string, math, table, coroutine, utf8, package.
+     * Does not include the `debug` library (mlua refuses to load it via the safe API).
+     */
+    ALL,
+    /**
+     * Sandboxed subset: base, string, math, table, coroutine only.
+     * No io, os, package, or debug.
+     */
+    SAFE,
+    /**
+     * Bare VM with no standard library
+     */
+    NONE;
+    public companion object
+}
+
+
+
+
+
+
+
+public sealed class LuaValue {
+    
+    
+    public data object Nil : LuaValue() 
+    
+    
+    public data class Boolean(
+        val v1: kotlin.Boolean,
+    ) : LuaValue() {
+    }
+    
+    public data class Integer(
+        val v1: kotlin.Long,
+    ) : LuaValue() {
+    }
+    
+    public data class Number(
+        val v1: kotlin.Double,
+    ) : LuaValue() {
+    }
+    
+    public data class LuaString(
+        val v1: kotlin.String,
+    ) : LuaValue() {
+    }
+    
+}
+
+
 

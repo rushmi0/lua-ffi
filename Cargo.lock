@@ -408,6 +408,9 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "mlua",
+ "serde",
+ "serde_json",
+ "thiserror",
  "tokio",
  "uniffi",
 ]

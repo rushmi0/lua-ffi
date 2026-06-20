@@ -153,15 +153,24 @@ typedef struct UniffiForeignFutureStructVoid {
 typedef void (*UniffiForeignFutureCompleteVoid)(int64_t, UniffiForeignFutureStructVoid
     );
 
-void * uniffi_lua_ffi_fn_clone_greeter(void * ptr, UniffiRustCallStatus *_Nonnull out_status
+void * uniffi_lua_ffi_fn_clone_luavm(void * ptr, UniffiRustCallStatus *_Nonnull out_status
 );
-void uniffi_lua_ffi_fn_free_greeter(void * ptr, UniffiRustCallStatus *_Nonnull out_status
+void uniffi_lua_ffi_fn_free_luavm(void * ptr, UniffiRustCallStatus *_Nonnull out_status
 );
-void * uniffi_lua_ffi_fn_constructor_greeter_new(RustBuffer greeting, UniffiRustCallStatus *_Nonnull out_status
+void * uniffi_lua_ffi_fn_constructor_luavm_new(UniffiRustCallStatus *_Nonnull out_status
+    
 );
-RustBuffer uniffi_lua_ffi_fn_method_greeter_greet(void * ptr, RustBuffer name, UniffiRustCallStatus *_Nonnull out_status
+void * uniffi_lua_ffi_fn_constructor_luavm_with_config(RustBuffer config, UniffiRustCallStatus *_Nonnull out_status
 );
-int32_t uniffi_lua_ffi_fn_func_add(int32_t lhs, int32_t rhs, UniffiRustCallStatus *_Nonnull out_status
+RustBuffer uniffi_lua_ffi_fn_method_luavm_eval(void * ptr, RustBuffer script, UniffiRustCallStatus *_Nonnull out_status
+);
+void uniffi_lua_ffi_fn_method_luavm_exec(void * ptr, RustBuffer script, UniffiRustCallStatus *_Nonnull out_status
+);
+RustBuffer uniffi_lua_ffi_fn_method_luavm_get_global(void * ptr, RustBuffer name, UniffiRustCallStatus *_Nonnull out_status
+);
+void uniffi_lua_ffi_fn_method_luavm_set_global(void * ptr, RustBuffer name, RustBuffer value, UniffiRustCallStatus *_Nonnull out_status
+);
+RustBuffer uniffi_lua_ffi_fn_method_luavm_version(void * ptr, UniffiRustCallStatus *_Nonnull out_status
 );
 RustBuffer ffi_lua_ffi_rustbuffer_alloc(int64_t size, UniffiRustCallStatus *_Nonnull out_status
 );
@@ -275,13 +284,25 @@ void ffi_lua_ffi_rust_future_free_void(int64_t handle
 );
 void ffi_lua_ffi_rust_future_complete_void(int64_t handle, UniffiRustCallStatus *_Nonnull out_status
 );
-int16_t uniffi_lua_ffi_checksum_func_add(void
+int16_t uniffi_lua_ffi_checksum_method_luavm_eval(void
     
 );
-int16_t uniffi_lua_ffi_checksum_method_greeter_greet(void
+int16_t uniffi_lua_ffi_checksum_method_luavm_exec(void
     
 );
-int16_t uniffi_lua_ffi_checksum_constructor_greeter_new(void
+int16_t uniffi_lua_ffi_checksum_method_luavm_get_global(void
+    
+);
+int16_t uniffi_lua_ffi_checksum_method_luavm_set_global(void
+    
+);
+int16_t uniffi_lua_ffi_checksum_method_luavm_version(void
+    
+);
+int16_t uniffi_lua_ffi_checksum_constructor_luavm_new(void
+    
+);
+int16_t uniffi_lua_ffi_checksum_constructor_luavm_with_config(void
     
 );
 int32_t ffi_lua_ffi_uniffi_contract_version(void

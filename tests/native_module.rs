@@ -1,6 +1,5 @@
 use mlua::{Lua, UserData, UserDataMethods};
 
-// Fibonacci logic — iterative to avoid stack overflow for large n
 fn fib(n: u64) -> u64 {
     match n {
         0 => 0,
@@ -14,8 +13,6 @@ fn fib(n: u64) -> u64 {
         }
     }
 }
-
-// --- Approach 1: module as a table of functions ---
 
 fn register_fib_table(lua: &Lua) {
     let t = lua.create_table().unwrap();
@@ -58,7 +55,6 @@ fn register_fib_table(lua: &Lua) {
     lua.globals().set("fib", t).unwrap();
 }
 
-// --- Approach 2: module as a UserData object ---
 
 struct FibCalculator;
 
@@ -76,8 +72,6 @@ impl UserData for FibCalculator {
     }
 }
 
-// ---- Tests ----
-
 #[test]
 fn table_module_compute() {
     let lua = Lua::new();
@@ -93,14 +87,20 @@ fn table_module_known_values() {
     register_fib_table(&lua);
 
     let cases = [
-        (0, 0), (1, 1), (2, 1), (3, 2), (4, 3),
-        (5, 5), (6, 8), (7, 13), (8, 21), (9, 34), (10, 55),
+        (0, 0),
+        (1, 1),
+        (2, 1),
+        (3, 2),
+        (4, 3),
+        (5, 5),
+        (6, 8),
+        (7, 13),
+        (8, 21),
+        (9, 34),
+        (10, 55),
     ];
     for (n, expected) in cases {
-        let result: u64 = lua
-            .load(format!("return fib.compute({n})"))
-            .eval()
-            .unwrap();
+        let result: u64 = lua.load(format!("return fib.compute({n})")).eval().unwrap();
         assert_eq!(result, expected, "fib({n}) should be {expected}");
     }
 }
@@ -128,19 +128,13 @@ fn table_module_is_fib() {
 
     // Known Fibonacci numbers
     for n in [0u64, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89] {
-        let result: bool = lua
-            .load(format!("return fib.is_fib({n})"))
-            .eval()
-            .unwrap();
+        let result: bool = lua.load(format!("return fib.is_fib({n})")).eval().unwrap();
         assert!(result, "{n} should be detected as a Fibonacci number");
     }
 
     // Known non-Fibonacci numbers
     for n in [4u64, 6, 7, 9, 10, 11, 12, 14, 15] {
-        let result: bool = lua
-            .load(format!("return fib.is_fib({n})"))
-            .eval()
-            .unwrap();
+        let result: bool = lua.load(format!("return fib.is_fib({n})")).eval().unwrap();
         assert!(!result, "{n} should NOT be detected as a Fibonacci number");
     }
 }
@@ -151,13 +145,15 @@ fn table_module_used_in_lua_loop() {
     register_fib_table(&lua);
 
     let sum: u64 = lua
-        .load(r#"
+        .load(
+            r#"
             local s = 0
             for i = 0, 10 do
                 s = s + fib.compute(i)
             end
             return s
-        "#)
+        "#,
+        )
         .eval()
         .unwrap();
 

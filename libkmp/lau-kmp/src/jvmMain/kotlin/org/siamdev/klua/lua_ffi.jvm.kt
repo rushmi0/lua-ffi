@@ -970,6 +970,14 @@ internal interface UniffiForeignFutureCompleteVoid: com.sun.jna.Callback {
 
 
 
+
+
+
+
+
+
+
+
 @Synchronized
 private fun findLibraryName(componentName: String): String {
     val libOverride = System.getProperty("uniffi.component.$componentName.libraryOverride")
@@ -1000,11 +1008,19 @@ private inline fun <reified Lib : Library> loadIndirect(
 // when the library is loaded.
 internal interface IntegrityCheckingUniffiLib : Library {
     // Integrity check functions only
-    fun uniffi_lua_ffi_checksum_func_add(
+    fun uniffi_lua_ffi_checksum_method_luavm_eval(
     ): Short
-    fun uniffi_lua_ffi_checksum_method_greeter_greet(
+    fun uniffi_lua_ffi_checksum_method_luavm_exec(
     ): Short
-    fun uniffi_lua_ffi_checksum_constructor_greeter_new(
+    fun uniffi_lua_ffi_checksum_method_luavm_get_global(
+    ): Short
+    fun uniffi_lua_ffi_checksum_method_luavm_set_global(
+    ): Short
+    fun uniffi_lua_ffi_checksum_method_luavm_version(
+    ): Short
+    fun uniffi_lua_ffi_checksum_constructor_luavm_new(
+    ): Short
+    fun uniffi_lua_ffi_checksum_constructor_luavm_with_config(
     ): Short
     fun ffi_lua_ffi_uniffi_contract_version(
     ): Int
@@ -1056,28 +1072,46 @@ internal interface UniffiLib : Library {
         }
     }
 
-    fun uniffi_lua_ffi_fn_clone_greeter(
+    fun uniffi_lua_ffi_fn_clone_luavm(
         `ptr`: Pointer?,
         uniffiCallStatus: UniffiRustCallStatus,
     ): Pointer?
-    fun uniffi_lua_ffi_fn_free_greeter(
+    fun uniffi_lua_ffi_fn_free_luavm(
         `ptr`: Pointer?,
         uniffiCallStatus: UniffiRustCallStatus,
     ): Unit
-    fun uniffi_lua_ffi_fn_constructor_greeter_new(
-        `greeting`: RustBufferByValue,
+    fun uniffi_lua_ffi_fn_constructor_luavm_new(
         uniffiCallStatus: UniffiRustCallStatus,
     ): Pointer?
-    fun uniffi_lua_ffi_fn_method_greeter_greet(
+    fun uniffi_lua_ffi_fn_constructor_luavm_with_config(
+        `config`: RustBufferByValue,
+        uniffiCallStatus: UniffiRustCallStatus,
+    ): Pointer?
+    fun uniffi_lua_ffi_fn_method_luavm_eval(
+        `ptr`: Pointer?,
+        `script`: RustBufferByValue,
+        uniffiCallStatus: UniffiRustCallStatus,
+    ): RustBufferByValue
+    fun uniffi_lua_ffi_fn_method_luavm_exec(
+        `ptr`: Pointer?,
+        `script`: RustBufferByValue,
+        uniffiCallStatus: UniffiRustCallStatus,
+    ): Unit
+    fun uniffi_lua_ffi_fn_method_luavm_get_global(
         `ptr`: Pointer?,
         `name`: RustBufferByValue,
         uniffiCallStatus: UniffiRustCallStatus,
     ): RustBufferByValue
-    fun uniffi_lua_ffi_fn_func_add(
-        `lhs`: Int,
-        `rhs`: Int,
+    fun uniffi_lua_ffi_fn_method_luavm_set_global(
+        `ptr`: Pointer?,
+        `name`: RustBufferByValue,
+        `value`: RustBufferByValue,
         uniffiCallStatus: UniffiRustCallStatus,
-    ): Int
+    ): Unit
+    fun uniffi_lua_ffi_fn_method_luavm_version(
+        `ptr`: Pointer?,
+        uniffiCallStatus: UniffiRustCallStatus,
+    ): RustBufferByValue
     fun ffi_lua_ffi_rustbuffer_alloc(
         `size`: Long,
         uniffiCallStatus: UniffiRustCallStatus,
@@ -1305,13 +1339,25 @@ private fun uniffiCheckContractApiVersion(lib: IntegrityCheckingUniffiLib) {
 
 
 private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
-    if (lib.uniffi_lua_ffi_checksum_func_add() != 44846.toShort()) {
+    if (lib.uniffi_lua_ffi_checksum_method_luavm_eval() != 14566.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_lua_ffi_checksum_method_greeter_greet() != 35837.toShort()) {
+    if (lib.uniffi_lua_ffi_checksum_method_luavm_exec() != 22643.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_lua_ffi_checksum_constructor_greeter_new() != 39804.toShort()) {
+    if (lib.uniffi_lua_ffi_checksum_method_luavm_get_global() != 39876.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_lua_ffi_checksum_method_luavm_set_global() != 64974.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_lua_ffi_checksum_method_luavm_version() != 32107.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_lua_ffi_checksum_constructor_luavm_new() != 51339.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_lua_ffi_checksum_constructor_luavm_with_config() != 59038.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
 }
@@ -1359,23 +1405,65 @@ private class UniffiCleanerAction(private val disposable: Disposable): Runnable 
 private fun UniffiCleaner.Companion.create(): UniffiCleaner = UniffiJnaCleaner()
 
 
-public object FfiConverterInt: FfiConverter<Int, Int> {
-    override fun lift(value: Int): Int {
+public object FfiConverterLong: FfiConverter<Long, Long> {
+    override fun lift(value: Long): Long {
         return value
     }
 
-    override fun read(buf: ByteBuffer): Int {
-        return buf.getInt()
+    override fun read(buf: ByteBuffer): Long {
+        return buf.getLong()
     }
 
-    override fun lower(value: Int): Int {
+    override fun lower(value: Long): Long {
         return value
     }
 
-    override fun allocationSize(value: Int): ULong = 4UL
+    override fun allocationSize(value: Long): ULong = 8UL
 
-    override fun write(value: Int, buf: ByteBuffer) {
-        buf.putInt(value)
+    override fun write(value: Long, buf: ByteBuffer) {
+        buf.putLong(value)
+    }
+}
+
+
+public object FfiConverterDouble: FfiConverter<Double, Double> {
+    override fun lift(value: Double): Double {
+        return value
+    }
+
+    override fun read(buf: ByteBuffer): Double {
+        return buf.getDouble()
+    }
+
+    override fun lower(value: Double): Double {
+        return value
+    }
+
+    override fun allocationSize(value: Double): ULong = 8UL
+
+    override fun write(value: Double, buf: ByteBuffer) {
+        buf.putDouble(value)
+    }
+}
+
+
+public object FfiConverterBoolean: FfiConverter<Boolean, Byte> {
+    override fun lift(value: Byte): Boolean {
+        return value.toInt() != 0
+    }
+
+    override fun read(buf: ByteBuffer): Boolean {
+        return lift(buf.get())
+    }
+
+    override fun lower(value: Boolean): Byte {
+        return if (value) 1.toByte() else 0.toByte()
+    }
+
+    override fun allocationSize(value: Boolean): ULong = 1UL
+
+    override fun write(value: Boolean, buf: ByteBuffer) {
+        buf.put(lower(value))
     }
 }
 
@@ -1430,7 +1518,7 @@ public object FfiConverterString: FfiConverter<String, RustBufferByValue> {
 
 
 
-public actual open class Greeter: Disposable, GreeterInterface {
+public actual open class LuaVm: Disposable, LuaVmInterface {
 
     public constructor(pointer: Pointer) {
         this.pointer = pointer
@@ -1446,10 +1534,12 @@ public actual open class Greeter: Disposable, GreeterInterface {
         this.pointer = null
         this.cleanable = UniffiLib.CLEANER.register(this, UniffiPointerDestroyer(null))
     }
-    public actual constructor(`greeting`: kotlin.String) : this(
+    /**
+     * Create a VM with all standard libraries loaded.
+     */
+    public actual constructor() : this(
         uniffiRustCall { uniffiRustCallStatus ->
-            UniffiLib.INSTANCE.uniffi_lua_ffi_fn_constructor_greeter_new(
-                FfiConverterString.lower(`greeting`),
+            UniffiLib.INSTANCE.uniffi_lua_ffi_fn_constructor_luavm_new(
                 uniffiRustCallStatus,
             )
         }!!
@@ -1516,7 +1606,7 @@ public actual open class Greeter: Disposable, GreeterInterface {
         override fun destroy() {
             pointer?.let { ptr ->
                 uniffiRustCall { status ->
-                    UniffiLib.INSTANCE.uniffi_lua_ffi_fn_free_greeter(ptr, status)
+                    UniffiLib.INSTANCE.uniffi_lua_ffi_fn_free_luavm(ptr, status)
                 }
             }
         }
@@ -1524,15 +1614,51 @@ public actual open class Greeter: Disposable, GreeterInterface {
 
     public fun uniffiClonePointer(): Pointer {
         return uniffiRustCall { status ->
-            UniffiLib.INSTANCE.uniffi_lua_ffi_fn_clone_greeter(pointer!!, status)
+            UniffiLib.INSTANCE.uniffi_lua_ffi_fn_clone_luavm(pointer!!, status)
         }!!
     }
 
     
-    public actual override fun `greet`(`name`: kotlin.String): kotlin.String {
-        return FfiConverterString.lift(callWithPointer {
-            uniffiRustCall { uniffiRustCallStatus ->
-                UniffiLib.INSTANCE.uniffi_lua_ffi_fn_method_greeter_greet(
+    /**
+     * Execute a script and return the first value.
+     */
+    @Throws(LuaException::class)
+    public actual override fun `eval`(`script`: kotlin.String): LuaValue {
+        return FfiConverterTypeLuaValue.lift(callWithPointer {
+            uniffiRustCallWithError(LuaExceptionErrorHandler) { uniffiRustCallStatus ->
+                UniffiLib.INSTANCE.uniffi_lua_ffi_fn_method_luavm_eval(
+                    it,
+                    FfiConverterString.lower(`script`),
+                    uniffiRustCallStatus,
+                )
+            }
+        })
+    }
+
+    /**
+     * Execute a script, discarding any return values.
+     */
+    @Throws(LuaException::class)
+    public actual override fun `exec`(`script`: kotlin.String) {
+        callWithPointer {
+            uniffiRustCallWithError(LuaExceptionErrorHandler) { uniffiRustCallStatus ->
+                UniffiLib.INSTANCE.uniffi_lua_ffi_fn_method_luavm_exec(
+                    it,
+                    FfiConverterString.lower(`script`),
+                    uniffiRustCallStatus,
+                )
+            }
+        }
+    }
+
+    /**
+     * Get a global variable.
+     */
+    @Throws(LuaException::class)
+    public actual override fun `getGlobal`(`name`: kotlin.String): LuaValue {
+        return FfiConverterTypeLuaValue.lift(callWithPointer {
+            uniffiRustCallWithError(LuaExceptionErrorHandler) { uniffiRustCallStatus ->
+                UniffiLib.INSTANCE.uniffi_lua_ffi_fn_method_luavm_get_global(
                     it,
                     FfiConverterString.lower(`name`),
                     uniffiRustCallStatus,
@@ -1541,10 +1667,56 @@ public actual open class Greeter: Disposable, GreeterInterface {
         })
     }
 
+    /**
+     * Set a global variable.
+     */
+    @Throws(LuaException::class)
+    public actual override fun `setGlobal`(`name`: kotlin.String, `value`: LuaValue) {
+        callWithPointer {
+            uniffiRustCallWithError(LuaExceptionErrorHandler) { uniffiRustCallStatus ->
+                UniffiLib.INSTANCE.uniffi_lua_ffi_fn_method_luavm_set_global(
+                    it,
+                    FfiConverterString.lower(`name`),
+                    FfiConverterTypeLuaValue.lower(`value`),
+                    uniffiRustCallStatus,
+                )
+            }
+        }
+    }
+
+    /**
+     * Return the Lua version string, e.g. `"Lua 5.4"`.
+     */
+    public actual override fun `version`(): kotlin.String {
+        return FfiConverterString.lift(callWithPointer {
+            uniffiRustCall { uniffiRustCallStatus ->
+                UniffiLib.INSTANCE.uniffi_lua_ffi_fn_method_luavm_version(
+                    it,
+                    uniffiRustCallStatus,
+                )
+            }
+        })
+    }
+
 
     
-    
-    public actual companion object
+    public actual companion object {
+        
+        /**
+         * Create a VM with explicit stdlib and options.
+         */
+        @Throws(LuaException::class)
+        public actual fun `withConfig`(`config`: LuaConfig): LuaVm {
+            return FfiConverterTypeLuaVm.lift(uniffiRustCallWithError(LuaExceptionErrorHandler) { uniffiRustCallStatus ->
+                UniffiLib.INSTANCE.uniffi_lua_ffi_fn_constructor_luavm_with_config(
+                    FfiConverterTypeLuaConfig.lower(`config`),
+                    uniffiRustCallStatus,
+                )
+            }!!)
+        }
+
+        
+    }
     
 }
 
@@ -1552,25 +1724,25 @@ public actual open class Greeter: Disposable, GreeterInterface {
 
 
 
-public object FfiConverterTypeGreeter: FfiConverter<Greeter, Pointer> {
+public object FfiConverterTypeLuaVm: FfiConverter<LuaVm, Pointer> {
 
-    override fun lower(value: Greeter): Pointer {
+    override fun lower(value: LuaVm): Pointer {
         return value.uniffiClonePointer()
     }
 
-    override fun lift(value: Pointer): Greeter {
-        return Greeter(value)
+    override fun lift(value: Pointer): LuaVm {
+        return LuaVm(value)
     }
 
-    override fun read(buf: ByteBuffer): Greeter {
+    override fun read(buf: ByteBuffer): LuaVm {
         // The Rust code always writes pointers as 8 bytes, and will
         // fail to compile if they don't fit.
         return lift(buf.getLong().toPointer())
     }
 
-    override fun allocationSize(value: Greeter): ULong = 8UL
+    override fun allocationSize(value: LuaVm): ULong = 8UL
 
-    override fun write(value: Greeter, buf: ByteBuffer) {
+    override fun write(value: LuaVm, buf: ByteBuffer) {
         // The Rust code always expects pointers written as 8 bytes,
         // and will fail to compile if they don't fit.
         buf.putLong(lower(value).toLong())
@@ -1578,15 +1750,197 @@ public object FfiConverterTypeGreeter: FfiConverter<Greeter, Pointer> {
 }
 
 
-public actual fun `add`(`lhs`: kotlin.Int, `rhs`: kotlin.Int): kotlin.Int {
-    return FfiConverterInt.lift(uniffiRustCall { uniffiRustCallStatus ->
-        UniffiLib.INSTANCE.uniffi_lua_ffi_fn_func_add(
-            FfiConverterInt.lower(`lhs`),
-            FfiConverterInt.lower(`rhs`),
-            uniffiRustCallStatus,
+
+
+public object FfiConverterTypeLuaConfig: FfiConverterRustBuffer<LuaConfig> {
+    override fun read(buf: ByteBuffer): LuaConfig {
+        return LuaConfig(
+            FfiConverterTypeLuaStdLib.read(buf),
         )
-    })
+    }
+
+    override fun allocationSize(value: LuaConfig): ULong = (
+            FfiConverterTypeLuaStdLib.allocationSize(value.`stdlib`)
+    )
+
+    override fun write(value: LuaConfig, buf: ByteBuffer) {
+        FfiConverterTypeLuaStdLib.write(value.`stdlib`, buf)
+    }
 }
+
+
+
+
+public object LuaExceptionErrorHandler : UniffiRustCallStatusErrorHandler<LuaException> {
+    override fun lift(errorBuf: RustBufferByValue): LuaException = FfiConverterTypeLuaError.lift(errorBuf)
+}
+
+public object FfiConverterTypeLuaError : FfiConverterRustBuffer<LuaException> {
+    override fun read(buf: ByteBuffer): LuaException {
+        return when (buf.getInt()) {
+            1 -> LuaException.Syntax(
+                FfiConverterString.read(buf),
+                )
+            2 -> LuaException.Runtime(
+                FfiConverterString.read(buf),
+                )
+            3 -> LuaException.Other(
+                FfiConverterString.read(buf),
+                )
+            else -> throw RuntimeException("invalid error enum value, something is very wrong!!")
+        }
+    }
+
+    override fun allocationSize(value: LuaException): ULong {
+        return when (value) {
+            is LuaException.Syntax -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+                + FfiConverterString.allocationSize(value.`msg`)
+            )
+            is LuaException.Runtime -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+                + FfiConverterString.allocationSize(value.`msg`)
+            )
+            is LuaException.Other -> (
+                // Add the size for the Int that specifies the variant plus the size needed for all fields
+                4UL
+                + FfiConverterString.allocationSize(value.`msg`)
+            )
+        }
+    }
+
+    override fun write(value: LuaException, buf: ByteBuffer) {
+        when (value) {
+            is LuaException.Syntax -> {
+                buf.putInt(1)
+                FfiConverterString.write(value.`msg`, buf)
+                Unit
+            }
+            is LuaException.Runtime -> {
+                buf.putInt(2)
+                FfiConverterString.write(value.`msg`, buf)
+                Unit
+            }
+            is LuaException.Other -> {
+                buf.putInt(3)
+                FfiConverterString.write(value.`msg`, buf)
+                Unit
+            }
+        }.let { /* this makes the `when` an expression, which ensures it is exhaustive */ }
+    }
+}
+
+
+
+
+
+public object FfiConverterTypeLuaStdLib: FfiConverterRustBuffer<LuaStdLib> {
+    override fun read(buf: ByteBuffer): LuaStdLib = try {
+        LuaStdLib.entries[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: LuaStdLib): ULong = 4UL
+
+    override fun write(value: LuaStdLib, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
+public object FfiConverterTypeLuaValue : FfiConverterRustBuffer<LuaValue>{
+    override fun read(buf: ByteBuffer): LuaValue {
+        return when(buf.getInt()) {
+            1 -> LuaValue.Nil
+            2 -> LuaValue.Boolean(
+                FfiConverterBoolean.read(buf),
+                )
+            3 -> LuaValue.Integer(
+                FfiConverterLong.read(buf),
+                )
+            4 -> LuaValue.Number(
+                FfiConverterDouble.read(buf),
+                )
+            5 -> LuaValue.LuaString(
+                FfiConverterString.read(buf),
+                )
+            else -> throw RuntimeException("invalid enum value, something is very wrong!!")
+        }
+    }
+
+    override fun allocationSize(value: LuaValue): ULong = when(value) {
+        is LuaValue.Nil -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+            )
+        }
+        is LuaValue.Boolean -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterBoolean.allocationSize(value.v1)
+            )
+        }
+        is LuaValue.Integer -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterLong.allocationSize(value.v1)
+            )
+        }
+        is LuaValue.Number -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterDouble.allocationSize(value.v1)
+            )
+        }
+        is LuaValue.LuaString -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterString.allocationSize(value.v1)
+            )
+        }
+    }
+
+    override fun write(value: LuaValue, buf: ByteBuffer) {
+        when(value) {
+            is LuaValue.Nil -> {
+                buf.putInt(1)
+                Unit
+            }
+            is LuaValue.Boolean -> {
+                buf.putInt(2)
+                FfiConverterBoolean.write(value.v1, buf)
+                Unit
+            }
+            is LuaValue.Integer -> {
+                buf.putInt(3)
+                FfiConverterLong.write(value.v1, buf)
+                Unit
+            }
+            is LuaValue.Number -> {
+                buf.putInt(4)
+                FfiConverterDouble.write(value.v1, buf)
+                Unit
+            }
+            is LuaValue.LuaString -> {
+                buf.putInt(5)
+                FfiConverterString.write(value.v1, buf)
+                Unit
+            }
+        }.let { /* this makes the `when` an expression, which ensures it is exhaustive */ }
+    }
+}
+
 
 
 // Async support
